@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+
+{% block title %}Log in | Tuckshop ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <h1 class="h3 mb-3">Log in</h1>
+        {% if form.errors %}
+        <div class="alert alert-danger">Wrong username or password. Try again.</div>
+        {% endif %}
+        <form method="post" class="card card-body">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="username">Username</label>
+                <input class="form-control" type="text" name="username" id="username" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="password">Password</label>
+                <input class="form-control" type="password" name="password" id="password" required>
+            </div>
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit" class="btn btn-primary">Log in</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

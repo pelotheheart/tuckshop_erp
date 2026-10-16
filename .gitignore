@@ -1,0 +1,17 @@
+# Private settings and passwords. Everyone has their own copy, made from .env.example.
+.env
+
+# Each person makes their own virtual environment with `python -m venv .venv`.
+.venv/
+venv/
+
+# Python's cache files, rebuilt automatically.
+__pycache__/
+*.pyc
+
+# The SQLite file Django creates by default. We use MySQL instead.
+db.sqlite3
+
+# Editor settings that are personal to each person.
+.vscode/
+.idea/
