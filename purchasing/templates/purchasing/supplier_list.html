@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+
+{% block title %}Suppliers | Tuckshop ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Suppliers</h1>
+  <a href="{% url 'supplier_add' %}" class="btn btn-primary">Add supplier</a>
+</div>
+
+<table class="table">
+  <thead>
+    <tr><th>Supplier</th><th>Contact person</th><th>Phone</th><th>Email</th><th>Status</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for supplier in suppliers %}
+    <tr class="{% if not supplier.is_active %}text-muted{% endif %}">
+      <td>{{ supplier.supplier_name }}</td>
+      <td>{{ supplier.contact_name|default:"-" }}</td>
+      <td>{{ supplier.phone|default:"-" }}</td>
+      <td>{{ supplier.email|default:"-" }}</td>
+      <td>
+        {% if supplier.is_active %}<span class="badge text-bg-success">Active</span>
+        {% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}
+      </td>
+      <td class="text-end text-nowrap">
+        <a href="{% url 'supplier_edit' supplier.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+        <form method="post" action="{% url 'supplier_toggle_active' supplier.pk %}" class="d-inline"
+              onsubmit="return confirm('Are you sure?');">
+          {% csrf_token %}
+          {% if supplier.is_active %}
+          <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+          {% else %}
+          <button type="submit" class="btn btn-sm btn-outline-success">Reactivate</button>
+          {% endif %}
+        </form>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">No suppliers yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
