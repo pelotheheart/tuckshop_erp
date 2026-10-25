@@ -1,0 +1,28 @@
+.left-panel {
+    background-color: #1fe092;
+}
+
+.right-panel {
+    background-color: #ecf7f2;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 420px;
+}
+
+.logo-placeholder {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background-color: rgba(255,255,255,0.2);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-weight: bold;
+}
+#login-button{
+    background-color: #1fe092;
+}
