@@ -1,0 +1,55 @@
+
+{% extends "core/base.html" %}
+
+{% block title %}Reports | Tuckshop ERP{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-2">Reports</h2>
+    <p class="text-muted mb-4">
+        View sales, cashier performance, inventory and purchasing information.
+    </p>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Sales Report</h5>
+                    <p class="card-text">Review sales transactions and filter by date or cashier.</p>
+                    <a href="{% url 'sales_report' %}" class="btn btn-primary">View Sales</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Cashier Performance</h5>
+                    <p class="card-text">Review transaction counts, average sale values and revenue.</p>
+                    <a href="{% url 'cashier_report' %}" class="btn btn-primary">View Cashiers</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Inventory Valuation</h5>
+                    <p class="card-text">Review stock value, expected retail value and low-stock alerts.</p>
+                    <a href="{% url 'inventory_report' %}" class="btn btn-primary">View Inventory</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Purchasing Report</h5>
+                    <p class="card-text">Review supplier spending, purchase orders and order statuses.</p>
+                    <a href="{% url 'purchasing_report' %}" class="btn btn-primary">View Purchasing</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+
+{% extends "core/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Cashier Performance Report</h2>
+    <p>View transaction totals, revenue, and average sale value for each cashier.</p>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Cashier</th>
+                    <th>Total Transactions</th>
+                    <th>Total Revenue</th>
+                    <th>Average Transaction Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cashier in cashiers %}
+                    <tr>
+                        <td>{{ cashier.cashier__username }}</td>
+                        <td>{{ cashier.total_transactions }}</td>
+                        <td>R {{ cashier.total_revenue|default:0|floatformat:2 }}</td>
+                        <td>R {{ cashier.average_ticket|default:0|floatformat:2 }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">
+                            No sales records found.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a href="{% url 'export_cashier_csv' %}" class="btn btn-success">
+    Export CSV
+    </a>
+</div>
+{% endblock %}
