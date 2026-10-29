@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ title }} | Tuckshop ERP{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">{{ title }}</h1>
+<form method="post">
+  {% csrf_token %}
+  {# Rules about more than one field, like "phone or email", aren't attached to any one box, so they're shown here. #}
+  {% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+  {% endif %}
+  {% for field in form %}
+  <div class="mb-3">
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% for error in field.errors %}
+    <div class="text-danger small mt-1">{{ error }}</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary">Save</button>
+  <a href="{% url 'supplier_list' %}" class="btn btn-link">Cancel</a>
+</form>
+{% endblock %}
