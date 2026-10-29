@@ -8,6 +8,7 @@ from django.contrib import admin
 from django.urls import include,path
 
 from core import views
+from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -16,4 +17,5 @@ urlpatterns = [
     path("inventory/", include("inventory.urls")),
     path("purchasing/", include("purchasing.urls")),
     path("", include("accounts.urls")),
+    path("reports/", include("reports.urls")),
 ]
