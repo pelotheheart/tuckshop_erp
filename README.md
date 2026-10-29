@@ -15,6 +15,7 @@ This README takes you from nothing to a running copy, then explains how the piec
 - **A home page** that lists the stock at your branch and highlights anything below its minimum
 - **Add product**: a working example of a form that saves to the database
 - **Product search**: a working example of jQuery fetching data without reloading the page
+- **Purchasing**: suppliers (add, edit, deactivate), purchase orders with item lines, fulfil (adds the stock, exactly once) and cancel
 - **Demo data** you can load with one command so youre not working with an empty project
 - **Django's admin site** at `/admin/`, for adding test data while you build
 ---
@@ -195,7 +196,7 @@ tuckshop-erp/
 - accounts/ - Users: Role, Branch, User, login/logout, permissions.py
 - inventory/ - Inventory: Product, Inventory (stock per branch), Add product, search
 - sales/ - Sales: Sale, SaleItem (tables only so far)
-- purchasing/ - Purchasing: Supplier, PurchaseOrder, PurchaseOrderItem (tables only so far)
+- purchasing/ - Purchasing: suppliers, purchase orders, fulfil and cancel (complete)
 ```
 
 Every module app has the same layout:
@@ -204,7 +205,7 @@ Every module app has the same layout:
 |---|---|
 | `models.py` | The tables. One class per table, one attribute per column. |
 | `views.py` | One function per page. It takes the request and returns a response. |
-| `urls.py` | This app's addresses. `sales` and `purchasing` don't have one yet. See Example 1 below. |
+| `urls.py` | This app's addresses. `sales` doesn't have one yet. See Example 1 below. |
 | `forms.py` | Forms that check what the user typed |
 | `admin.py` | Which tables show up in the admin site |
 | `templates/<app>/` | This app's HTML. The app name is repeated so two apps can both have, say, `list.html` without clashing. |
@@ -244,7 +245,7 @@ urlpatterns = [
 path("inventory/", include("inventory.urls")),
 ```
 
-That's why Add product lives at `/inventory/products/add/`. `sales` and `purchasing` don't have a `urls.py` yet. For your first page, create one shaped like `inventory/urls.py`, and add an `include(...)` line like the inventory one to `config/urls.py`.
+That's why Add product lives at `/inventory/products/add/`. `sales` doesn't have a `urls.py` yet. For your first page, create one shaped like `inventory/urls.py`, and add an `include(...)` line like the inventory one to `config/urls.py`.
 
 **2. A view** that gets the data and hands it to a template. Here's `home` in `core/views.py`:
 
@@ -377,7 +378,7 @@ The redirect after saving matters. If we showed a page straight away instead, pr
 
 **To make your own form:** copy `ProductForm` into your app's `forms.py` with your model and fields, then copy `product_add` and `product_form.html` and change the names. If your form only saves one table, you don't need the `with transaction.atomic():` part. A plain `form.save()` is enough.
 
-**Rules that involve more than one field.** Some tables have a rule about two fields together. For example, the `Supplier` table in `purchasing/models.py` needs a phone number *or* an email. A message like that belongs to the whole form, not one box, so the field loop above won't show it. The form would quietly refuse to save, and the user wouldn't know why. For a model like that, add this just under `{% csrf_token %}`:
+**Rules that involve more than one field.** Some tables have a rule about two fields together. For example, the `Supplier` table in `purchasing/models.py` needs a phone number *or* an email. A message like that belongs to the whole form, not one box, so the field loop above won't show it. The form would quietly refuse to save, and the user wouldn't know why. For a model like that, add this just under `{% csrf_token %}`. You can see it working in `purchasing/templates/purchasing/supplier_form.html`.
 
 ```django
 {% if form.non_field_errors %}
@@ -501,7 +502,9 @@ with transaction.atomic():
     Inventory.objects.create(branch=request.user.branch, product=product, quantity=0)
 ```
 
-If the second line fails, MySQL undoes the first one too, so we never end up with a product that has no stock row. **The sales checkout and purchase-order fulfilment must work like this.** A sale, its items and the stock reductions are saved together or not at all. When you build checkout, also read the stock rows with `select_for_update()` inside the transaction. That locks them, so two tills can't sell the last bag of chips at the same moment.
+If the second line fails, MySQL undoes the first one too, so we never end up with a product that has no stock row. **The sales checkout must work like this too.** A sale, its items and the stock reductions are saved together or not at all. When you build checkout, also read the stock rows with `select_for_update()` inside the transaction. That locks them, so two tills can't sell the last bag of chips at the same moment.
+
+For a real example of both, read `fulfil_purchase_order` in `purchasing/services.py`. It locks the order, checks it's still Pending, adds each item to the stock, then marks the order Fulfilled, all in one transaction. Checkout has the same shape: lock the stock rows, check there's enough of each, save the sale and its items, then reduce the stock.
 
 ---
 
@@ -567,7 +570,7 @@ That last rule backs up our Phase 3 decision to **deactivate, not delete**.
 5. Records with history are deactivated, not deleted.
 6. Permissions are checked on the server, in the views.
 
-**The admin site** (`/admin/`, log in as `owner`) is handy for adding test data while you build, such as purchase orders before the purchase-order page exists. But it's a developer tool, not part of our system, and **it skips our business rules**. A sale added there doesn't reduce stock.
+**The admin site** (`/admin/`, log in as `owner`) is handy for adding test data while you build, such as sales before the POS page exists. But it's a developer tool, not part of our system, and **it skips our business rules**. A sale added there doesn't reduce stock.
 
 ---
 
@@ -623,7 +626,6 @@ Pull before you push, so you pick up everyone else's changes first, and fix any 
 | Users | Add, edit and deactivate users. Owners manage admins and cashiers; admins manage cashiers only. |
 | Inventory | Edit and deactivate products, and stock adjustments |
 | Sales | The POS cart (jQuery), checkout in one transaction (check stock, save the sale and its items, reduce stock), receipts, sales history |
-| Purchasing | Supplier pages, purchase orders with item lines, fulfil (stock goes up, once) and cancel |
 | Reports | Sales by period and product, inventory valuation at cost, best and slow sellers, PDF/Excel export |
 
 ---

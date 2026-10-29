@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+
+{% block title %}New purchase order | Tuckshop ERP{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">New purchase order</h1>
+<form method="post">
+  {% csrf_token %}
+
+  <div class="mb-4 col-md-6">
+    <label class="form-label" for="{{ form.supplier.id_for_label }}">Supplier</label>
+    {{ form.supplier }}
+    {% for error in form.supplier.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+  </div>
+
+  <h2 class="h5">Items</h2>
+  <p class="text-muted small">Fill in a row for each product you're ordering. Leave the rows you don't need empty.</p>
+
+  {# Hidden fields that tell Django how many rows the page sent. Without them the formset can't be read. #}
+  {{ formset.management_form }}
+  {% for error in formset.non_form_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+
+  <table class="table">
+    <thead>
+      <tr><th>Product</th><th>Quantity</th><th>Cost price (each)</th></tr>
+    </thead>
+    <tbody>
+      {% for item_form in formset %}
+      <tr>
+        {% for field in item_form.visible_fields %}
+        <td>
+          {% if forloop.first %}{% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}{% endif %}
+          {{ field }}
+          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit" class="btn btn-primary">Create order</button>
+  <a href="{% url 'order_list' %}" class="btn btn-link">Cancel</a>
+</form>
+{% endblock %}

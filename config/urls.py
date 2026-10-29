@@ -14,5 +14,6 @@ urlpatterns = [
     # name="..." lets templates link to a page with {% url 'home' %} instead of typing the address
     path("", views.home, name="home"),  # http://127.0.0.1:8000/
     path("inventory/", include("inventory.urls")),
+    path("purchasing/", include("purchasing.urls")),
     path("", include("accounts.urls")),
 ]
