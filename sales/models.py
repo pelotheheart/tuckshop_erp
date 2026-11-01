@@ -12,8 +12,7 @@ class Sale(models.Model):
 
     id = models.AutoField(primary_key=True, db_column="sale_id")
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
-    # Who rang up the sale. The ERD column is user_id, but in Python we call it
-    # cashier, because that's what it means.
+    # Who rang up the sale. The ERD column is user_id, but in Python we call it cashier, because that's what it means.
     cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="user_id")
     sale_date = models.DateTimeField(default=timezone.now)
     # Worked out by the code from the items, never typed in (Phase 3 business rule 2).
@@ -37,8 +36,7 @@ class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     quantity = models.IntegerField()
-    # A copy of the product's price when it was sold, so old receipts stay correct
-    # after a price change (Phase 3 business rule 3).
+    # A copy of the product's price when it was sold, so old receipts stay correct after a price change (Phase 3 business rule 3).
     selling_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:

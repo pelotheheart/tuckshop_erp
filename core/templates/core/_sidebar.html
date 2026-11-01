@@ -1,0 +1,44 @@
+{% url 'home' as home_url %}
+{% url 'pos' as pos_url %}
+{% url 'sale_list' as sales_url %}
+{% url 'product_add' as product_add_url %}
+{% url 'supplier_list' as suppliers_url %}
+{% url 'order_list' as orders_url %}
+{% url 'reports_home' as reports_url %}
+<aside class="offcanvas-lg offcanvas-start flex-shrink-0 bg-white border-end d-print-none" tabindex="-1" id="sidebar" style="width: 240px;">
+  <div class="offcanvas-header border-bottom">
+    <span class="offcanvas-title fw-semibold">Menu</span>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close the menu"></button>
+  </div>
+  <div class="offcanvas-body flex-column p-3">
+    <ul class="nav nav-pills flex-column">
+      <li class="nav-item"><a class="nav-link {% if request.path == home_url %}active{% else %}link-body-emphasis{% endif %}" href="{{ home_url }}">Home</a></li>
+    </ul>
+
+    <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Sales</div>
+    <ul class="nav nav-pills flex-column">
+      <li class="nav-item"><a class="nav-link {% if request.path == pos_url %}active{% else %}link-body-emphasis{% endif %}" href="{{ pos_url }}">New sale</a></li>
+      {% if user.is_owner or user.is_administrator %}
+      <li class="nav-item"><a class="nav-link {% if request.path == sales_url %}active{% else %}link-body-emphasis{% endif %}" href="{{ sales_url }}">Sales history</a></li>
+      {% endif %}
+    </ul>
+
+    {% if user.is_owner or user.is_administrator %}
+    <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Inventory</div>
+    <ul class="nav nav-pills flex-column">
+      <li class="nav-item"><a class="nav-link {% if request.path == product_add_url %}active{% else %}link-body-emphasis{% endif %}" href="{{ product_add_url }}">Add product</a></li>
+    </ul>
+
+    <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Purchasing</div>
+    <ul class="nav nav-pills flex-column">
+      <li class="nav-item"><a class="nav-link {% if suppliers_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ suppliers_url }}">Suppliers</a></li>
+      <li class="nav-item"><a class="nav-link {% if orders_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ orders_url }}">Purchase orders</a></li>
+    </ul>
+
+    <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Reports</div>
+    <ul class="nav nav-pills flex-column">
+      <li class="nav-item"><a class="nav-link {% if reports_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ reports_url }}">Reports</a></li>
+    </ul>
+    {% endif %}
+  </div>
+</aside>
