@@ -2,7 +2,6 @@
 {% load static %}
 
 {% block title %}Log in | Tuckshop ERP{% endblock %}
-{% block css %}<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}"> {% endblock %}
 {% block content %}
 <div class="container-fluid vh-100">
 
@@ -53,4 +52,8 @@
 
 </div>
 
+{% endblock %}
+{% block scripts %}
+<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
 {% endblock %}

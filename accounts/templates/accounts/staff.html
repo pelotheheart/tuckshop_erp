@@ -1,0 +1,73 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Staff Accounts | Tuckshop ERP {% endblock %}
+{% block css %}<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}"> {% endblock %}
+{% block content%}
+<h1 class="h3 mb-1">Staff Dashboard</h1>
+<p class="text-muted">The server's time is {{ now }}</p>
+
+<!-- <input type="search" id="search" class="form-control mb-3" placeholder="Search staff..." data-url=""> -->
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <a href="{% url 'add_staff' %}" class="btn btn-primary">Add Staff</a>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-primary filter-btn" data-filter="all">All</button>
+        {% if request.user.is_owner %}
+        <button class="btn btn-outline-warning filter-btn" data-filter="admin">Admins</button>
+        <button class="btn btn-outline-info filter-btn" data-filter="cashier">Cashiers</button>
+        {% endif %}
+        <button class="btn btn-outline-success filter-btn" data-filter="active">Active</button>
+        <button class="btn btn-outline-secondary filter-btn" data-filter="inactive">Inactive</button>
+
+    </div>
+</div>
+
+{% for member in staff %}
+
+<div class="card shadow-sm border-0 mb-3 staff-card"  data-role="{{ member.role }}"
+     data-status="{% if member.is_active %}active{% else %}inactive{% endif %}">
+
+    <div class="card-body">
+        <div class="row align-items-center">
+
+            <div class="col-md-8">
+                <h5 class="mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
+
+                <p class="text-muted mb-2">{{ member.email }}</p>
+
+                <span class="badge bg-primary">{{ member.role }}</span>
+
+                <span class="badge bg-info ms-2">{{ member.branch }}</span>
+
+                {% if member.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+            </div>
+
+            <div class="col-md-4 text-md-end mt-3 mt-md-0"><a href="{% url 'user_details' member.id %}" class="btn btn-outline-primary">Manage</a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% empty %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <h5>No staff members registered yet.</h5>
+
+        <p class="text-muted">Add your first employee to get started. </p>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+<script src="{% static 'accounts/js/staff_filter.js' %}"></script>
+{% endblock %}
