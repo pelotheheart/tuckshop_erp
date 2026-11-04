@@ -1,10 +1,59 @@
-
 {% extends "core/base.html" %}
 
 {% block content %}
 <div class="container mt-4">
     <h2>Purchasing Report</h2>
     <p>View purchase orders, supplier spending, and order statuses.</p>
+
+    <form method="get" class="mb-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="period" class="form-label">Date Range</label>
+                <select name="period" id="period" class="form-select">
+                    <option value="all" {% if period == "all" %}selected{% endif %}>All Time</option>
+                    <option value="today" {% if period == "today" %}selected{% endif %}>Today</option>
+                    <option value="7" {% if period == "7" %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if period == "30" %}selected{% endif %}>Last 30 Days</option>
+                    <option value="365" {% if period == "365" %}selected{% endif %}>Last Year</option>
+                    <option value="custom" {% if period == "custom" %}selected{% endif %}>Custom Range</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" name="start_date" id="start_date"
+                       value="{% if start_date %}{{ start_date|date:'Y-m-d' }}{% endif %}" class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" name="end_date" id="end_date"
+                       value="{% if end_date %}{{ end_date|date:'Y-m-d' }}{% endif %}" class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label for="branch" class="form-label">Branch</label>
+                <select name="branch" id="branch" class="form-select" {% if not user.is_owner %}disabled{% endif %}>
+                    {% if user.is_owner %}
+                        <option value="">All Branches</option>
+                    {% endif %}
+                    {% for branch in branches %}
+                        <option value="{{ branch.id }}"
+                            {% if branch_id == branch.id %}selected{% endif %}>
+                            {{ branch.branch_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="{% url 'purchasing_report' %}" class="btn btn-secondary">Reset</a>
+            <a href="{% url 'export_purchasing_csv' %}?period={{ period }}&start_date={% if start_date %}{{ start_date|date:'Y-m-d' }}{% endif %}&end_date={% if end_date %}{{ end_date|date:'Y-m-d' }}{% endif %}&branch={{ branch_id }}"
+               class="btn btn-success">Export CSV</a>
+        </div>
+    </form>
 
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
@@ -62,7 +111,7 @@
                 {% empty %}
                     <tr>
                         <td colspan="2" class="text-center">
-                            No fulfilled purchases found.
+                            No fulfilled purchases found for these filters.
                         </td>
                     </tr>
                 {% endfor %}
@@ -96,7 +145,7 @@
                 {% empty %}
                     <tr>
                         <td colspan="6" class="text-center">
-                            No purchase orders found.
+                            No purchase orders found for these filters.
                         </td>
                     </tr>
                 {% endfor %}
@@ -105,13 +154,7 @@
     </div>
 
     <div class="mt-3 mb-4">
-        <a href="{% url 'export_purchasing_csv' %}"
-           class="btn btn-success">
-            Export CSV
-        </a>
-
-        <a href="{% url 'reports_home' %}"
-           class="btn btn-secondary">
+        <a href="{% url 'reports_home' %}" class="btn btn-secondary">
             Back to Reports
         </a>
     </div>
