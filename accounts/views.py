@@ -128,7 +128,9 @@ def edit_details(request, user_id):
         form = EditStaffMemberForm(request.POST, instance=member, current_user=request.user)
 
         if form.is_valid():
-            updated_member = form.save()  # Update user details in  db
+            updated_member = form.save(commit=False)  # Update user details in  db
+            updated_member.role = form.cleaned_data["role"]
+            updated_member.save()
             messages.success(request, f"User {updated_member.username} updated successfully.")
 
             return redirect("user_details", member.id)
