@@ -1,4 +1,3 @@
-
 import csv
 from functools import wraps
 from datetime import timedelta
@@ -10,12 +9,13 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.db.models import Sum, Count, Avg
+from django.contrib.auth import get_user_model
 
-from accounts.models import ADMIN, OWNER, CASHIER
+from accounts.models import ADMIN, OWNER, Branch
 from sales.models import Sale
 from inventory.models import Inventory
 from purchasing.models import PurchaseOrder
-from django.contrib.auth import get_user_model
+
 
 # Only logged-in Owners and Administrators can access reports.
 def reports_access_required(view_func):
@@ -29,27 +29,25 @@ def reports_access_required(view_func):
     return wrapper
 
 
-@reports_access_required
-def reports_home(request):
-    return render(request, "reports/reports_home.html")
-
-
-@reports_access_required
-def sales_report(request):
+def parse_date_filters(request, default_period="7"):
     today = timezone.now().date()
-    period = request.GET.get("period", "7")
-    start_date = None
-    end_date = today
+    period = request.GET.get("period", default_period)
 
-    # Set the date range selected by the user.
-    if period == "today":
+    if period == "all":
+        start_date = None
+        end_date = None
+    elif period == "today":
         start_date = today
+        end_date = today
     elif period == "7":
         start_date = today - timedelta(days=6)
+        end_date = today
     elif period == "30":
         start_date = today - timedelta(days=29)
+        end_date = today
     elif period == "365":
         start_date = today - timedelta(days=364)
+        end_date = today
     elif period == "custom":
         start_date = parse_date(request.GET.get("start_date", ""))
         end_date = parse_date(request.GET.get("end_date", ""))
@@ -59,70 +57,127 @@ def sales_report(request):
             end_date = today
             period = "7"
     else:
-        period = "7"
-        start_date = today - timedelta(days=6)
+        period = default_period
+        if default_period == "7":
+            start_date = today - timedelta(days=6)
+            end_date = today
+        elif default_period == "all":
+            start_date = None
+            end_date = None
+        else:
+            start_date = today - timedelta(days=6)
+            end_date = today
 
-    # Retrieve sales within the selected dates.
-    sales = Sale.objects.select_related(
-        "cashier", "branch"
-    ).filter(
-        sale_date__date__gte=start_date,
-        sale_date__date__lte=end_date,
-    )
+    return period, start_date, end_date
 
-    # Owners can see all branches. Administrators are limited to their branch.
+
+def get_branches_and_filter(request, queryset):
+    branch_id_param = request.GET.get("branch", "")
+    selected_branch_id = int(branch_id_param) if branch_id_param.isdigit() else ""
+
     if not request.user.has_role(OWNER):
-        sales = sales.filter(branch=request.user.branch)
+        queryset = queryset.filter(branch=request.user.branch)
+        branches = Branch.objects.filter(id=request.user.branch.id)
+        selected_branch_id = request.user.branch.id
+    else:
+        branches = Branch.objects.all().order_by("branch_name")
+        if selected_branch_id:
+            queryset = queryset.filter(branch_id=selected_branch_id)
+    return queryset, branches, selected_branch_id
 
-    # List all active cashier accounts, including those with no sales.
-    User = get_user_model()
-    cashiers = User.objects.filter(
+
+@reports_access_required
+def reports_home(request):
+    return render(request, "reports/reports_home.html")
+
+
+@reports_access_required
+def sales_report(request):
+    period, start_date, end_date = parse_date_filters(request, default_period="7")
+
+    sales = Sale.objects.select_related("cashier", "branch").prefetch_related("items__product")
+
+    if start_date and end_date:
+        sales = sales.filter(
+            sale_date__date__gte=start_date,
+            sale_date__date__lte=end_date,
+        )
+
+    sales, branches, branch_id = get_branches_and_filter(request, sales)
+
+    user_model = get_user_model()
+    cashiers = user_model.objects.filter(
         role__role_name="Cashier",
         is_active=True,
     ).order_by("username")
 
-    # Administrators only see cashiers assigned to their branch.
     if not request.user.has_role(OWNER):
         cashiers = cashiers.filter(branch=request.user.branch)
+    elif isinstance(branch_id, int):
+        cashiers = cashiers.filter(branch_id=branch_id)
 
-    # Filter sales by the selected cashier.
     cashier_id = request.GET.get("cashier", "")
     if cashier_id.isdigit():
         sales = sales.filter(cashier_id=int(cashier_id))
 
-    # Calculate totals using the filtered sales.
-    total_revenue = sales.aggregate(
-        total=Sum("total_amount")
-    )["total"] or 0
+    sales_list = list(sales.order_by("-sale_date"))
+    total_revenue = 0
+    total_stock_cost = 0
+
+    for sale in sales_list:
+        sale.stock_cost = sum(
+            item.quantity * item.product.cost_price
+            for item in sale.items.all()
+        )
+        sale.gross_profit = sale.total_amount - sale.stock_cost
+        sale.markup_percentage = (
+            (sale.gross_profit / sale.stock_cost * 100)
+            if sale.stock_cost > 0 else 0
+        )
+        total_revenue += sale.total_amount
+        total_stock_cost += sale.stock_cost
+
+    total_gross_profit = total_revenue - total_stock_cost
+    average_markup = (
+        (total_gross_profit / total_stock_cost * 100)
+        if total_stock_cost > 0 else 0
+    )
 
     return render(
         request,
         "reports/sales_report.html",
         {
-            "sales": sales.order_by("-sale_date"),
+            "sales": sales_list,
+            "branches": branches,
+            "branch_id": branch_id,
             "cashiers": cashiers,
             "cashier_id": cashier_id,
             "period": period,
             "start_date": start_date,
             "end_date": end_date,
             "total_revenue": total_revenue,
-            "total_transactions": sales.count(),
+            "total_stock_cost": total_stock_cost,
+            "total_gross_profit": total_gross_profit,
+            "average_markup": average_markup,
+            "total_transactions": len(sales_list),
         },
     )
 
 
-
-# The remaining report pages are placeholders until their calculations are added.
-
 @reports_access_required
 def cashier_report(request):
-    # Administrators can only see cashiers from their own branch.
+    period, start_date, end_date = parse_date_filters(request, default_period="all")
+
     sales = Sale.objects.all()
 
-    if not request.user.has_role(OWNER):
-        sales = sales.filter(branch=request.user.branch)
+    if start_date and end_date:
+        sales = sales.filter(
+            sale_date__date__gte=start_date,
+            sale_date__date__lte=end_date,
+        )
 
-    # Group sales by cashier and calculate their performance.
+    sales, branches, branch_id = get_branches_and_filter(request, sales)
+
     cashiers = (
         sales.values("cashier_id", "cashier__username")
         .annotate(
@@ -136,20 +191,22 @@ def cashier_report(request):
     return render(
         request,
         "reports/cashier_report.html",
-        {"cashiers": cashiers},
+        {
+            "cashiers": cashiers,
+            "branches": branches,
+            "branch_id": branch_id,
+            "period": period,
+            "start_date": start_date,
+            "end_date": end_date,
+        },
     )
-
 
 
 @reports_access_required
 def inventory_report(request):
-    # Administrators can only view stock for their assigned branch.
-    inventory = Inventory.objects.select_related(
-        "product", "branch"
-    )
+    inventory = Inventory.objects.select_related("product", "branch")
 
-    if not request.user.has_role(OWNER):
-        inventory = inventory.filter(branch=request.user.branch)
+    inventory, branches, branch_id = get_branches_and_filter(request, inventory)
 
     inventory_rows = list(inventory.order_by("product__product_name"))
 
@@ -162,7 +219,6 @@ def inventory_report(request):
         item.retail_value = item.quantity * item.product.selling_price
         item.gross_profit = item.retail_value - item.cost_value
 
-        # Calculate the margin as a percentage of expected retail value.
         item.profit_margin = (
             item.gross_profit / item.retail_value * 100
             if item.retail_value else 0
@@ -182,6 +238,8 @@ def inventory_report(request):
         "reports/inventory_report.html",
         {
             "inventory_rows": inventory_rows,
+            "branches": branches,
+            "branch_id": branch_id,
             "total_cost": total_cost,
             "total_retail": total_retail,
             "total_profit": total_profit,
@@ -192,17 +250,24 @@ def inventory_report(request):
         },
     )
 
+
 @reports_access_required
 def purchasing_report(request):
-    # Administrators can only view orders for their assigned branch.
+    period, start_date, end_date = parse_date_filters(request, default_period="all")
+
     orders = PurchaseOrder.objects.select_related(
         "supplier", "branch"
     ).prefetch_related("items")
 
-    if not request.user.has_role(OWNER):
-        orders = orders.filter(branch=request.user.branch)
+    if start_date and end_date:
+        orders = orders.filter(
+            order_date__gte=start_date,
+            order_date__lte=end_date,
+        )
 
-    orders = list(orders.order_by("-order_date", "-id"))
+    orders, branches, branch_id = get_branches_and_filter(request, orders)
+
+    orders_list = list(orders.order_by("-order_date", "-id"))
 
     supplier_spend = {}
     pending_count = 0
@@ -210,7 +275,7 @@ def purchasing_report(request):
     cancelled_count = 0
     total_fulfilled_spend = 0
 
-    for order in orders:
+    for order in orders_list:
         order.total_amount = sum(
             (item.quantity * item.cost_price for item in order.items.all()),
             start=0,
@@ -236,7 +301,12 @@ def purchasing_report(request):
         request,
         "reports/purchasing_report.html",
         {
-            "orders": orders,
+            "orders": orders_list,
+            "branches": branches,
+            "branch_id": branch_id,
+            "period": period,
+            "start_date": start_date,
+            "end_date": end_date,
             "supplier_spend": sorted(
                 supplier_spend.values(),
                 key=lambda supplier: supplier["total_spend"],
@@ -250,43 +320,19 @@ def purchasing_report(request):
     )
 
 
-# These CSV export endpoints will be implemented after the reports are completed.
-
 @reports_access_required
 def export_sales_csv(request):
-    today = timezone.now().date()
-    period = request.GET.get("period", "7")
-    start_date = None
-    end_date = today
+    period, start_date, end_date = parse_date_filters(request, default_period="7")
 
-    if period == "today":
-        start_date = today
-    elif period == "7":
-        start_date = today - timedelta(days=6)
-    elif period == "30":
-        start_date = today - timedelta(days=29)
-    elif period == "365":
-        start_date = today - timedelta(days=364)
-    elif period == "custom":
-        start_date = parse_date(request.GET.get("start_date", ""))
-        end_date = parse_date(request.GET.get("end_date", ""))
+    sales = Sale.objects.select_related("cashier", "branch").prefetch_related("items__product")
 
-        if not start_date or not end_date or start_date > end_date:
-            start_date = today - timedelta(days=6)
-            end_date = today
-    else:
-        start_date = today - timedelta(days=6)
+    if start_date and end_date:
+        sales = sales.filter(
+            sale_date__date__gte=start_date,
+            sale_date__date__lte=end_date,
+        )
 
-    # Apply the same branch restrictions as the Sales Report page.
-    sales = Sale.objects.select_related(
-        "cashier", "branch"
-    ).filter(
-        sale_date__date__gte=start_date,
-        sale_date__date__lte=end_date,
-    )
-
-    if not request.user.has_role(OWNER):
-        sales = sales.filter(branch=request.user.branch)
+    sales, _, _ = get_branches_and_filter(request, sales)
 
     cashier_id = request.GET.get("cashier", "")
     if cashier_id.isdigit():
@@ -301,29 +347,50 @@ def export_sales_csv(request):
         "Date and Time",
         "Cashier",
         "Branch",
-        "Total Amount (R)",
+        "Total Revenue (R)",
+        "Stock Cost (R)",
+        "Gross Profit (R)",
+        "Markup (%)",
     ])
 
     for sale in sales.order_by("-sale_date"):
+        stock_cost = sum(
+            item.quantity * item.product.cost_price
+            for item in sale.items.all()
+        )
+        gross_profit = sale.total_amount - stock_cost
+        markup_pct = (
+            (gross_profit / stock_cost * 100)
+            if stock_cost > 0 else 0
+        )
+
         writer.writerow([
             sale.id,
             sale.sale_date.strftime("%Y-%m-%d %H:%M:%S"),
             sale.cashier.username,
             sale.branch.branch_name,
             sale.total_amount,
+            stock_cost,
+            gross_profit,
+            round(markup_pct, 2),
         ])
 
     return response
 
 
-
 @reports_access_required
 def export_cashier_csv(request):
-    # Administrators can only export results for their own branch.
+    period, start_date, end_date = parse_date_filters(request, default_period="all")
+
     sales = Sale.objects.all()
 
-    if not request.user.has_role(OWNER):
-        sales = sales.filter(branch=request.user.branch)
+    if start_date and end_date:
+        sales = sales.filter(
+            sale_date__date__gte=start_date,
+            sale_date__date__lte=end_date,
+        )
+
+    sales, _, _ = get_branches_and_filter(request, sales)
 
     cashiers = (
         sales.values("cashier_id", "cashier__username")
@@ -336,9 +403,7 @@ def export_cashier_csv(request):
     )
 
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = (
-        'attachment; filename="cashier_performance.csv"'
-    )
+    response["Content-Disposition"] = 'attachment; filename="cashier_performance.csv"'
 
     writer = csv.writer(response)
     writer.writerow([
@@ -359,21 +424,14 @@ def export_cashier_csv(request):
     return response
 
 
-
 @reports_access_required
 def export_inventory_csv(request):
-    # Administrators can only export stock from their assigned branch.
-    inventory = Inventory.objects.select_related(
-        "product", "branch"
-    )
+    inventory = Inventory.objects.select_related("product", "branch")
 
-    if not request.user.has_role(OWNER):
-        inventory = inventory.filter(branch=request.user.branch)
+    inventory, _, _ = get_branches_and_filter(request, inventory)
 
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = (
-        'attachment; filename="inventory_valuation.csv"'
-    )
+    response["Content-Disposition"] = 'attachment; filename="inventory_valuation.csv"'
 
     writer = csv.writer(response)
     writer.writerow([
@@ -415,21 +473,24 @@ def export_inventory_csv(request):
     return response
 
 
-
 @reports_access_required
 def export_purchasing_csv(request):
-    # Administrators can only export orders from their assigned branch.
+    period, start_date, end_date = parse_date_filters(request, default_period="all")
+
     orders = PurchaseOrder.objects.select_related(
         "supplier", "branch"
     ).prefetch_related("items")
 
-    if not request.user.has_role(OWNER):
-        orders = orders.filter(branch=request.user.branch)
+    if start_date and end_date:
+        orders = orders.filter(
+            order_date__gte=start_date,
+            order_date__lte=end_date,
+        )
+
+    orders, _, _ = get_branches_and_filter(request, orders)
 
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = (
-        'attachment; filename="purchasing_report.csv"'
-    )
+    response["Content-Disposition"] = 'attachment; filename="purchasing_report.csv"'
 
     writer = csv.writer(response)
     writer.writerow([
@@ -460,4 +521,3 @@ def export_purchasing_csv(request):
         ])
 
     return response
-

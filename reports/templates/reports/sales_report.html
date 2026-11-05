@@ -1,4 +1,3 @@
-
 {% extends "core/base.html" %}
 
 {% block content %}
@@ -8,9 +7,10 @@
 
     <form method="get" class="mb-4">
         <div class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="period" class="form-label">Date Range</label>
                 <select name="period" id="period" class="form-select">
+                    <option value="all" {% if period == "all" %}selected{% endif %}>All Time</option>
                     <option value="today" {% if period == "today" %}selected{% endif %}>Today</option>
                     <option value="7" {% if period == "7" %}selected{% endif %}>Last 7 Days</option>
                     <option value="30" {% if period == "30" %}selected{% endif %}>Last 30 Days</option>
@@ -19,45 +19,88 @@
                 </select>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="start_date" class="form-label">Start Date</label>
                 <input type="date" name="start_date" id="start_date"
-                       value="{{ start_date|date:'Y-m-d' }}" class="form-control">
+                       value="{% if start_date %}{{ start_date|date:'Y-m-d' }}{% endif %}" class="form-control">
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="end_date" class="form-label">End Date</label>
                 <input type="date" name="end_date" id="end_date"
-                       value="{{ end_date|date:'Y-m-d' }}" class="form-control">
+                       value="{% if end_date %}{{ end_date|date:'Y-m-d' }}{% endif %}" class="form-control">
             </div>
 
             <div class="col-md-3">
-    <label for="cashier" class="form-label">Cashier</label>
-    <select name="cashier" id="cashier" class="form-select">
-        <option value="">All Cashiers</option>
-        {% for cashier in cashiers %}
-            <option value="{{ cashier.id }}"
-                {% if cashier_id == cashier.id|stringformat:"s" %}selected{% endif %}>
-                {{ cashier.username }}
-            </option>
-        {% endfor %}
-    </select>
-</div>
+                <label for="branch" class="form-label">Branch</label>
+                <select name="branch" id="branch" class="form-select" {% if not user.is_owner %}disabled{% endif %}>
+                    {% if user.is_owner %}
+                        <option value="">All Branches</option>
+                    {% endif %}
+                    {% for branch in branches %}
+                        <option value="{{ branch.id }}"
+                            {% if branch_id == branch.id|stringformat:"s" %}selected{% endif %}>
+                            {{ branch.branch_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="cashier" class="form-label">Cashier</label>
+                <select name="cashier" id="cashier" class="form-select">
+                    <option value="">All Cashiers</option>
+                    {% for cashier in cashiers %}
+                        <option value="{{ cashier.id }}"
+                            {% if cashier_id == cashier.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cashier.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
 
         <div class="mt-3">
             <button type="submit" class="btn btn-primary">Apply Filters</button>
             <a href="{% url 'sales_report' %}" class="btn btn-secondary">Reset</a>
-            <a href="{% url 'export_sales_csv' %}?period={{ period }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&cashier={{ cashier_id }}"
+            <a href="{% url 'export_sales_csv' %}?period={{ period }}&start_date={% if start_date %}{{ start_date|date:'Y-m-d' }}{% endif %}&end_date={% if end_date %}{{ end_date|date:'Y-m-d' }}{% endif %}&branch={{ branch_id }}&cashier={{ cashier_id }}"
                class="btn btn-success">Export CSV</a>
         </div>
     </form>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <h5>Total Revenue</h5>
                     <h3>R {{ total_revenue|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Total Stock Cost</h5>
+                    <h3>R {{ total_stock_cost|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Gross Profit</h5>
+                    <h3>R {{ total_gross_profit|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Average Markup %</h5>
+                    <h3>{{ average_markup|floatformat:2 }}%</h3>
                 </div>
             </div>
         </div>
@@ -80,7 +123,10 @@
                     <th>Date and Time</th>
                     <th>Cashier</th>
                     <th>Branch</th>
-                    <th>Total</th>
+                    <th>Total Revenue</th>
+                    <th>Stock Cost</th>
+                    <th>Gross Profit</th>
+                    <th>Markup %</th>
                 </tr>
             </thead>
             <tbody>
@@ -91,10 +137,13 @@
                         <td>{{ sale.cashier.username }}</td>
                         <td>{{ sale.branch.branch_name }}</td>
                         <td>R {{ sale.total_amount|floatformat:2 }}</td>
+                        <td>R {{ sale.stock_cost|floatformat:2 }}</td>
+                        <td>R {{ sale.gross_profit|floatformat:2 }}</td>
+                        <td>{{ sale.markup_percentage|floatformat:2 }}%</td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center">No sales found for these filters.</td>
+                        <td colspan="8" class="text-center">No sales found for these filters.</td>
                     </tr>
                 {% endfor %}
             </tbody>
