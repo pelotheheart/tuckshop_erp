@@ -57,6 +57,7 @@
 
                         <div class="mb-4">
 
+                        {% if show_rb %}
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-building"></i></span>{{ member_form.branch }}</div>
 
@@ -79,7 +80,7 @@
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                         </div>
-
+                        {% endif %}
 
                         {% if show_password_fields %}
                         <div class="mb-3">

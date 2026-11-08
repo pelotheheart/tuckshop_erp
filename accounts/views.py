@@ -118,6 +118,12 @@ def add_staff(request):
 
 
 @login_required
+@role_required(OWNER)
+def my_profile(request):
+    return redirect("user_details", request.user.id)
+
+
+@login_required
 @role_required(OWNER, ADMIN)
 def user_details(request, user_id):
     # Get and manage specific user details
@@ -129,6 +135,44 @@ def user_details(request, user_id):
 
 
 @login_required
+@role_required(OWNER)
+def edit_my_profile(request):
+    # Update owner details
+    member = request.user
+    page_title = "Edit User"
+    form_header = f"Edit {member.username}'s account details"
+    btn_text = "Save Changes"
+    show_rb = False  # hide role and branch icons
+    if request.method == "POST":
+        # update db with new owner details
+        form = EditMyProfileForm(request.POST, instance=member, current_user=request.user)
+
+        if form.is_valid():
+            updated_member = form.save()  # Update user details in  db
+            messages.success(request, f"User {updated_member.username} updated successfully.")
+
+            return redirect("user_details", member.id)
+
+        # redirect to edit details screen with errors displayed
+        return render(request, "accounts/add_staff.html", {"member_form": form,
+                                                           "form_header": form_header,
+                                                           "page_title": page_title,
+                                                           "button_text": btn_text,
+                                                           "show_rb": show_rb,
+                                                           "now": now})
+
+    else:
+        # Initialize form fields with owner details
+        staff_member_form = EditMyProfileForm(instance=member, current_user=request.user)
+        return render(request, "accounts/add_staff.html", {"member_form": staff_member_form,
+                                                           "form_header": form_header,
+                                                           "page_title": page_title,
+                                                           "button_text": btn_text,
+                                                           "show_rb": show_rb,
+                                                           "now": now})
+
+
+@login_required
 @role_required(OWNER, ADMIN)
 def edit_details(request, user_id):
     # Update staff member details
@@ -136,7 +180,7 @@ def edit_details(request, user_id):
     page_title = "Edit User"
     form_header = f"Edit {member.username}'s account details"
     btn_text = "Save Changes"
-
+    show_rb = True  # show role and branch icons
     if request.user.is_administrator and not member.is_cashier:
         raise PermissionDenied  # stop processing if admin tries editing any member other than cashier
 
@@ -158,6 +202,7 @@ def edit_details(request, user_id):
                                                            "form_header": form_header,
                                                            "page_title": page_title,
                                                            "button_text": btn_text,
+                                                           "show_rb": show_rb,
                                                            "now": now})
 
     else:
@@ -166,7 +211,9 @@ def edit_details(request, user_id):
         return render(request, "accounts/add_staff.html", {"member_form": staff_member_form,
                                                            "form_header": form_header,
                                                            "page_title": page_title,
-                                                           "button_text": btn_text, "now": now})
+                                                           "button_text": btn_text,
+                                                           "show_rb": show_rb,
+                                                           "now": now})
 
 
 @login_required
@@ -177,6 +224,11 @@ def deactivate_user(request, user_id):
 
     if request.user.is_administrator and not member.is_cashier:
         raise PermissionDenied  # stop processing if admin tries deactivating any member other than cashier
+
+    if member == request.user:  # prevent owners and admins from deactivating their own accounts
+        messages.error(request, "You cannot deactivate your own account.")
+
+        return redirect("user_details", member.id)
 
     if request.method == "POST":
         member.is_active = False  # deactivate staff member account

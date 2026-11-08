@@ -103,6 +103,15 @@ class EditStaffMemberForm(StaffMemberForm):
         self.fields.pop("confirm_password")
 
 
+class EditMyProfileForm(EditStaffMemberForm):
+    # Inherit EditStaffMemberForm for editing owner  details
+    # Limit changes to Username, First Name, Last Name, password reset handled separately,branch & role cannot change
+    def __init__(self, *args, current_user=None, **kwargs):
+        super().__init__(*args, current_user=current_user, **kwargs)
+        self.fields.pop("role")  # remove role and branch selection
+        self.fields.pop("branch")
+
+
 class ResetPasswordForm(StaffMemberForm):
     # Inherit BaseUser form for resetting staff member password
     def __init__(self, *args, current_user=None, **kwargs):
