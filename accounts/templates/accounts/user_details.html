@@ -87,10 +87,6 @@
                         <a href="{% url 'activate_user' member.id %}" class="btn btn-success">Activate</a>
                         {% endif %}
 
-                        {% if request.user.is_owner %}
-                            <a href="" class="btn btn-danger">Delete</a>
-                        {% endif %}
-
                         <a href="{% url 'staff' %}" class="btn btn-link">Back</a>
                     </div>
 

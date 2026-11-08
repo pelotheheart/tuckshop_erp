@@ -13,6 +13,16 @@
     <a href="{% url 'add_staff' %}" class="btn btn-primary">Add Staff</a>
 
     <div class="d-flex gap-2 flex-wrap">
+        {% if request.user.is_owner %}
+        <select id="branch-filter" class="form-select w-auto">
+            <option value="all">All Branches</option>
+
+            {% for branch in branches %}
+            <option value="{{ branch.id }}">{{ branch.branch_name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+
         <button class="btn btn-outline-primary filter-btn" data-filter="all">All</button>
         {% if request.user.is_owner %}
         <button class="btn btn-outline-warning filter-btn" data-filter="admin">Admins</button>
@@ -27,7 +37,8 @@
 {% for member in staff %}
 
 <div class="card shadow-sm border-0 mb-3 staff-card"  data-role="{{ member.role }}"
-     data-status="{% if member.is_active %}active{% else %}inactive{% endif %}">
+     data-status="{% if member.is_active %}active{% else %}inactive{% endif %}"
+     data-branch="{{ member.branch.id }}">
 
     <div class="card-body">
         <div class="row align-items-center">
@@ -59,12 +70,16 @@
 {% empty %}
 <div class="card border-0 shadow-sm">
     <div class="card-body text-center py-5">
-        <h5>No staff members registered yet.</h5>
-
-        <p class="text-muted">Add your first employee to get started. </p>
+        <p>No staff members registered yet.</p>
     </div>
 </div>
 {% endfor %}
+<div id="no-results" class="card border-0 shadow-sm text-center py-5" style="display:none;">
+
+    <div class="card-body">
+        <p class="text-muted mb-0">No staff members match the selected filters.</p>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
