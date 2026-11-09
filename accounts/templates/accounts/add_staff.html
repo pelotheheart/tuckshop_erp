@@ -1,0 +1,130 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}  {{ page_title }} | Tuckshop ERP {% endblock %}
+{% block css %}<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}"> {% endblock %}
+{% block content%}
+<h1 class="h3 mb-1">{{ form_header }}</h1>
+<p class="text-muted">The server's time is {{ now }} </p>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+
+                <div class="card-body p-4">
+
+                    <h2 class="mb-4">
+                        {{ form_header }}
+                    </h2>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                {{ member_form.username }}
+                            </div>
+                            {% for error in member_form.username.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                {{ member_form.first_name }}
+                            </div>
+                            {% for error in member_form.first_name.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                {{ member_form.last_name }}
+                            </div>
+                            {% for error in member_form.last_name.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+
+                        {% if show_rb %}
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-building"></i></span>{{ member_form.branch }}</div>
+
+                            {% for error in member_form.branch.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person-badge"></i>
+                                </span>
+                                {{ member_form.role }}
+                            </div>
+                            {% for error in member_form.role.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if show_password_fields %}
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                {{ member_form.password }}
+                            </div>
+                            {% for error in member_form.password.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                {{ member_form.confirm_password }}
+                            </div>
+                            {% for error in member_form.confirm_password.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <button type="submit" class="btn btn-success">{{ button_text }} </button>
+
+                        <a href="{% url 'staff' %}" class="btn btn-link">Cancel</a>
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+{% block scripts %}
+<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
+{% endblock %}

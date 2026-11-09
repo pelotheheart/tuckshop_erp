@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}New sale | Tuckshop ERP{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">New sale</h1>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <input type="search" id="pos-search" class="form-control mb-3" placeholder="Search by name or barcode..." autofocus data-url="{% url 'pos_product_lookup' %}">
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Product</th><th class="text-end">Price</th><th class="text-end">In stock</th><th></th></tr>
+      </thead>
+      <tbody id="search-results">
+        <tr><td colspan="4" class="text-muted">Start typing to find a product.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header fw-semibold">Cart</div>
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr><th>Product</th><th class="text-end">Qty</th><th class="text-end">Line total</th><th></th></tr>
+        </thead>
+        <tbody id="cart-rows">
+          <tr><td colspan="4" class="text-muted">The cart is empty.</td></tr>
+        </tbody>
+      </table>
+      <div id="cart-message" class="text-danger small px-3"></div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <span class="fs-5">Total: <strong id="cart-total">R 0.00</strong></span>
+        <button type="button" id="checkout" class="btn btn-success" disabled data-url="{% url 'pos_checkout' %}">Complete sale</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Django refuses POSTs without this token, so every jQuery request sends it.
+  $.ajaxSetup({ headers: { "X-CSRFToken": "{{ csrf_token }}" } });
+</script>
+<script src="{% static 'sales/js/pos.js' %}"></script>
+{% endblock %}

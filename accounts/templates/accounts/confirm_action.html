@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}User Details | Tuckshop ERP {% endblock %}
+{% block css %}<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}"> {% endblock %}
+{% block content%}
+<div class="card shadow-sm">
+
+    <div class="card-body text-center">
+        <h3>Confirm {{ action }}</h3>
+
+        <p>Are you sure you want to {{ action|lower }}  {{ member.username }}? </p>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning">Confirm</button>
+            <a  href="{% url 'user_details' member.id %}" class="btn btn-outline-primary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
