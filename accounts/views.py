@@ -14,6 +14,11 @@ now = dt.now().strftime("%H:%m")
 
 
 def register(request):
+    # Check that no owner is registered before registering a new owner
+
+    if User.objects.filter(role__role_name=OWNER).exists():
+        return redirect("login")  # redirect to login if owner is already registered
+
     if request.method == "POST":
         branch_form = BranchRegistrationForm(request.POST)
         user_form = UserRegistrationForm(request.POST)
@@ -51,37 +56,50 @@ def register(request):
 @role_required(OWNER, ADMIN)
 def staff(request):
     staff_members = []
+    reg_branches = []
     # Owner - Get all staff members belonging to Owners branch
     if request.user.is_owner:
-        staff_members = (User.objects.filter(branch=request.user.branch).only("first_name", "last_name", "role", "branch")
-                         .exclude(username=request.user))
+        staff_members = (User.objects.select_related("role", "branch").only("first_name", "last_name", "role", "branch")
+                         .exclude(role__role_name=OWNER))
+        reg_branches = Branch.objects.all()
 
     elif request.user.is_administrator:  # Admin - Get all cashiers belonging to admin users branch
         staff_members = User.objects.filter(branch=request.user.branch, role__role_name=CASHIER)
 
-    return render(request, "accounts/staff.html", {"staff": staff_members, "now": now})
+    context = {"staff": staff_members, "branches": reg_branches,  "now": now}
+    return render(request, "accounts/staff.html", context)
 
 
 @login_required
 @role_required(OWNER, ADMIN)
 def add_staff(request):
     # Add new staff member to a branch
+    page_title = "Account Registration"
+    form_header = "Add Staff Member"
+    button_text = "Add Member"
+    pswrd_fields = True
     if request.method == "POST":
         member_form = StaffMemberForm(request.POST, current_user=request.user)
 
         if not member_form.is_valid():
-            return render(request, "accounts/add_staff.html", {"member_form": member_form})
+            return render(request, "accounts/add_staff.html", {"member_form": member_form,
+                                                               "page_title": page_title,
+                                                               "form_header": form_header,
+                                                               "button_text": button_text,
+                                                               "show_password_fields": pswrd_fields,
+                                                               "now": now})
 
         with transaction.atomic():
             new_member = member_form.save(commit=False)  # create member object
             new_member.set_password(member_form.cleaned_data["password"])  # password hash for db storage
             new_member.role = member_form.cleaned_data["role"]
-            new_member.branch = request.user.branch  # link user to creators branch
+            new_member.branch = member_form.cleaned_data["branch"]  # link user to branch selected
 
             # get clean branch name for generating user email
-            branch_name = request.user.branch.branch_name.lower().replace(" ", "")
+            selected_branch = member_form.cleaned_data["branch"]
+            branch_name = selected_branch.branch_name.lower().replace(" ", "")
             # create user email from username and branch
-            new_member.email = f"{new_member.username}@{branch_name}.com"
+            new_member.email = f"{new_member.username}@{branch_name}.com".lower()
 
             new_member.save()  # add new member to db
 
@@ -91,20 +109,25 @@ def add_staff(request):
 
     else:
         staff_member_form = StaffMemberForm(current_user=request.user)
-        form_header = "Add Staff Member"
 
         return render(request, "accounts/add_staff.html", {"member_form": staff_member_form,
                                                            "page_title": "Account Registration",
                                                            "form_header": form_header,
-                                                           "button_text": "Add Member", "show_password_fields":True,
+                                                           "button_text": button_text, "show_password_fields": pswrd_fields,
                                                            "now": now})
+
+
+@login_required
+@role_required(OWNER)
+def my_profile(request):
+    return redirect("user_details", request.user.id)
 
 
 @login_required
 @role_required(OWNER, ADMIN)
 def user_details(request, user_id):
     # Get and manage specific user details
-    member = User.objects.get(id=user_id, branch=request.user.branch)
+    member = User.objects.get(id=user_id)
     if request.user.is_administrator and not member.is_cashier:
         raise PermissionDenied  # stop processing if admin tries editing any member other than cashier
 
@@ -112,20 +135,17 @@ def user_details(request, user_id):
 
 
 @login_required
-@role_required(OWNER, ADMIN)
-def edit_details(request, user_id):
-    # Update staff member details
-    member = User.objects.get(id=user_id, branch=request.user.branch)
+@role_required(OWNER)
+def edit_my_profile(request):
+    # Update owner details
+    member = request.user
     page_title = "Edit User"
     form_header = f"Edit {member.username}'s account details"
     btn_text = "Save Changes"
-
-    if request.user.is_administrator and not member.is_cashier:
-        raise PermissionDenied  # stop processing if admin tries editing any member other than cashier
-
+    show_rb = False  # hide role and branch icons
     if request.method == "POST":
-        # update db with new user details
-        form = EditStaffMemberForm(request.POST, instance=member, current_user=request.user)
+        # update db with new owner details
+        form = EditMyProfileForm(request.POST, instance=member, current_user=request.user)
 
         if form.is_valid():
             updated_member = form.save()  # Update user details in  db
@@ -138,6 +158,51 @@ def edit_details(request, user_id):
                                                            "form_header": form_header,
                                                            "page_title": page_title,
                                                            "button_text": btn_text,
+                                                           "show_rb": show_rb,
+                                                           "now": now})
+
+    else:
+        # Initialize form fields with owner details
+        staff_member_form = EditMyProfileForm(instance=member, current_user=request.user)
+        return render(request, "accounts/add_staff.html", {"member_form": staff_member_form,
+                                                           "form_header": form_header,
+                                                           "page_title": page_title,
+                                                           "button_text": btn_text,
+                                                           "show_rb": show_rb,
+                                                           "now": now})
+
+
+@login_required
+@role_required(OWNER, ADMIN)
+def edit_details(request, user_id):
+    # Update staff member details
+    member = User.objects.get(id=user_id)
+    page_title = "Edit User"
+    form_header = f"Edit {member.username}'s account details"
+    btn_text = "Save Changes"
+    show_rb = True  # show role and branch icons
+    if request.user.is_administrator and not member.is_cashier:
+        raise PermissionDenied  # stop processing if admin tries editing any member other than cashier
+
+    if request.method == "POST":
+        # update db with new user details
+        form = EditStaffMemberForm(request.POST, instance=member, current_user=request.user)
+
+        if form.is_valid():
+            updated_member = form.save(commit=False)  # Update user details in  db
+            updated_member.role = form.cleaned_data["role"]
+            updated_member.branch = form.cleaned_data["branch"]  # link user to branch selected
+            updated_member.save()
+            messages.success(request, f"User {updated_member.username} updated successfully.")
+
+            return redirect("user_details", member.id)
+
+        # redirect to edit details screen with errors displayed
+        return render(request, "accounts/add_staff.html", {"member_form": form,
+                                                           "form_header": form_header,
+                                                           "page_title": page_title,
+                                                           "button_text": btn_text,
+                                                           "show_rb": show_rb,
                                                            "now": now})
 
     else:
@@ -146,17 +211,24 @@ def edit_details(request, user_id):
         return render(request, "accounts/add_staff.html", {"member_form": staff_member_form,
                                                            "form_header": form_header,
                                                            "page_title": page_title,
-                                                           "button_text": btn_text, "now": now})
+                                                           "button_text": btn_text,
+                                                           "show_rb": show_rb,
+                                                           "now": now})
 
 
 @login_required
 @role_required(OWNER, ADMIN)
 def deactivate_user(request, user_id):
     # Deactivate staff member account
-    member = User.objects.get(id=user_id, branch=request.user.branch)
+    member = User.objects.get(id=user_id)
 
     if request.user.is_administrator and not member.is_cashier:
         raise PermissionDenied  # stop processing if admin tries deactivating any member other than cashier
+
+    if member == request.user:  # prevent owners and admins from deactivating their own accounts
+        messages.error(request, "You cannot deactivate your own account.")
+
+        return redirect("user_details", member.id)
 
     if request.method == "POST":
         member.is_active = False  # deactivate staff member account
@@ -174,7 +246,7 @@ def deactivate_user(request, user_id):
 @role_required(OWNER, ADMIN)
 def activate_user(request, user_id):
     # Activate staff member account
-    member = User.objects.get(id=user_id, branch=request.user.branch)
+    member = User.objects.get(id=user_id)
 
     if request.user.is_administrator and not member.is_cashier:
         raise PermissionDenied  # stop processing if admin tries deactivating any member other than cashier
@@ -195,7 +267,7 @@ def activate_user(request, user_id):
 @role_required(OWNER, ADMIN)
 def reset_password(request, user_id):
     # Reset staff member password
-    member = User.objects.get(id=user_id, branch=request.user.branch)
+    member = User.objects.get(id=user_id)
 
     if request.user.is_administrator and not member.is_cashier:
         raise PermissionDenied  # Stop processing if admin tries changing password for any member other than cashier
@@ -216,3 +288,82 @@ def reset_password(request, user_id):
 
     return render(request, "accounts/reset_password.html",
                   {"reset_form": ResetPasswordForm(instance=member, current_user=request.user), "member": member})
+
+
+@login_required
+@role_required(OWNER)
+def branches(request):
+    # Owner - Get all registered branches
+    registered_branches = Branch.objects.all()
+
+    return render(request, "accounts/branches.html", {"branches": registered_branches, "now": now})
+
+
+@login_required
+@role_required(OWNER)
+def add_branch(request):
+    # Add new branch in db
+    page_title = "New Branch Registration"
+    form_header = "Add New Branch"
+    button_text = "Add Branch"
+
+    if request.method == "POST":
+        branch_form = BranchRegistrationForm(request.POST)
+
+        if not branch_form.is_valid():
+            return render(request, "accounts/add_branch.html", {"branch_form": branch_form,
+                                                                "page_title": page_title,
+                                                                "form_header": form_header,
+                                                                "button_text": button_text,
+                                                                "now": now
+                                                                })
+
+        new_branch = branch_form.save()  # save branch
+
+        messages.success(request, f"Branch '{new_branch.branch_name}' added successfully.")
+
+        return redirect("branches")
+
+    else:
+        branch_form = BranchRegistrationForm()
+
+        return render(request, "accounts/add_branch.html", {"branch_form": branch_form,
+                                                            "page_title": page_title,
+                                                            "form_header": form_header,
+                                                            "button_text": button_text,
+                                                            "now": now})
+
+
+@login_required
+@role_required(OWNER)
+def edit_branch(request, branch_id):
+    # Update branch details
+    reg_branch = Branch.objects.get(id=branch_id)
+    page_title = "Edit Branch"
+    form_header = f"Change {reg_branch.branch_name} branch details"
+    btn_text = "Save Changes"
+
+    if request.method == "POST":
+        # update db with new branch details
+        form = BranchRegistrationForm(request.POST, instance=reg_branch)
+
+        if form.is_valid():
+            updated_branch = form.save()
+            messages.success(request, f"Branch '{updated_branch.branch_name}' updated successfully.")
+
+            return redirect("branches")
+
+        # redirect to edit branch details screen with errors displayed
+        return render(request, "accounts/add_branch.html", {"branch_form": form,
+                                                            "form_header": form_header,
+                                                            "page_title": page_title,
+                                                            "button_text": btn_text,
+                                                            "now": now})
+
+    else:
+        # Initialize form fields with current branch details
+        branch_form = BranchRegistrationForm(instance=reg_branch)
+        return render(request, "accounts/add_branch.html", {"branch_form": branch_form,
+                                                            "form_header": form_header,
+                                                            "page_title": page_title,
+                                                            "button_text": btn_text, "now": now})

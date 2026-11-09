@@ -54,6 +54,34 @@
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                         </div>
+
+                        <div class="mb-4">
+
+                        {% if show_rb %}
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-building"></i></span>{{ member_form.branch }}</div>
+
+                            {% for error in member_form.branch.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person-badge"></i>
+                                </span>
+                                {{ member_form.role }}
+                            </div>
+                            {% for error in member_form.role.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
                         {% if show_password_fields %}
                         <div class="mb-3">
                             <div class="input-group">
@@ -79,17 +107,6 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-                        <div class="mb-4">
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="bi bi-person-badge"></i>
-                                </span>
-                                {{ member_form.role }}
-                            </div>
-                            {% for error in member_form.role.errors %}
-                                <div class="text-danger small mt-1">{{ error }}</div>
-                            {% endfor %}
-                        </div>
 
                         <button type="submit" class="btn btn-success">{{ button_text }} </button>
 

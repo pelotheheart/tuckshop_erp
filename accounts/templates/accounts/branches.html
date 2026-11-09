@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}  Branches | Tuckshop ERP {% endblock %}
+{% block css %}<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}"> {% endblock %}
+{% block content%}
+<h1 class="h3 mb-1">Manage Branches</h1>
+<p class="text-muted">The server's time is {{ now }}</p>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <a href="{% url 'add_branch' %}" class="btn btn-primary">Add Branch</a>
+
+</div>
+
+{% for branch in branches %}
+<div class="card shadow-sm border-0 mb-3 staff-card" >
+
+    <div class="card-body">
+        <div class="row align-items-center">
+
+            <div class="col-md-8">
+                <h5 class="mb-1">{{ branch.branch_name }}</h5>
+
+                <p class="text-muted mb-2">{{ branch.contact_number }}</p>
+
+                <span class="badge bg-info">{{ branch.address }}</span>
+
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0"><a href="{% url 'branch_details' branch.id%}" class="btn btn-outline-primary">Edit</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endfor %}
+
+{% block scripts%}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
+{% endblock%}
+{% endblock %}

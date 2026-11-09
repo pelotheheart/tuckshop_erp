@@ -3,16 +3,36 @@
 {% block title %}Staff Accounts | Tuckshop ERP {% endblock %}
 {% block css %}<link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}"> {% endblock %}
 {% block content%}
-<h1 class="h3 mb-1">Staff Dashboard</h1>
-<p class="text-muted">The server's time is {{ now }}</p>
+<div class="d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="h3 mb-1">Staff Dashboard</h1>
+
+        <p class="text-muted">The server's time is {{ now }}</p>
+    </div>
+    {% if request.user.is_owner %}
+    <a href="{% url 'user_details' request.user.id %}" class="btn btn-outline-dark">My Profile </a>
+    {% endif %}
+</div>
 
 <!-- <input type="search" id="search" class="form-control mb-3" placeholder="Search staff..." data-url=""> -->
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-
+    {% if request.user.is_owner %}
     <a href="{% url 'add_staff' %}" class="btn btn-primary">Add Staff</a>
-
+    {% else%}
+    <a href="{% url 'add_staff' %}" class="btn btn-primary">Add Cashiers</a>
+    {% endif %}
     <div class="d-flex gap-2 flex-wrap">
+        {% if request.user.is_owner %}
+        <select id="branch-filter" class="form-select w-auto">
+            <option value="all">All Branches</option>
+
+            {% for branch in branches %}
+            <option value="{{ branch.id }}">{{ branch.branch_name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+
         <button class="btn btn-outline-primary filter-btn" data-filter="all">All</button>
         {% if request.user.is_owner %}
         <button class="btn btn-outline-warning filter-btn" data-filter="admin">Admins</button>
@@ -27,7 +47,8 @@
 {% for member in staff %}
 
 <div class="card shadow-sm border-0 mb-3 staff-card"  data-role="{{ member.role }}"
-     data-status="{% if member.is_active %}active{% else %}inactive{% endif %}">
+     data-status="{% if member.is_active %}active{% else %}inactive{% endif %}"
+     data-branch="{{ member.branch.id }}">
 
     <div class="card-body">
         <div class="row align-items-center">
@@ -59,12 +80,16 @@
 {% empty %}
 <div class="card border-0 shadow-sm">
     <div class="card-body text-center py-5">
-        <h5>No staff members registered yet.</h5>
-
-        <p class="text-muted">Add your first employee to get started. </p>
+        <p>No staff members registered yet.</p>
     </div>
 </div>
 {% endfor %}
+<div id="no-results" class="card border-0 shadow-sm text-center py-5" style="display:none;">
+
+    <div class="card-body">
+        <p class="text-muted mb-0">No staff members match the selected filters.</p>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

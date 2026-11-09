@@ -62,6 +62,9 @@ class StaffMemberForm(BaseUserForm):
     # Choice field depends on user logged in, Owner can manage Admins and Cashiers, Admins can only manage cashiers
     role = forms.ModelChoiceField(queryset=Role.objects.none(), empty_label="Select Role")
 
+    # Choice field depends on user logged in, Owner can assign staff to any branch, Admin can only add to their branch
+    branch = forms.ModelChoiceField(queryset=Branch.objects.none(), empty_label="Select Branch")
+
     class Meta(BaseUserForm.Meta):
         fields = ["username", "first_name", "last_name"]
 
@@ -73,9 +76,14 @@ class StaffMemberForm(BaseUserForm):
 
         if current_user.is_owner:  # Choice field for owner user, can add Admin or Cashier
             self.fields["role"].queryset = Role.objects.filter(role_name__in=[ADMIN, CASHIER])
+            self.fields["branch"].queryset = (Branch.objects.all())  # show all branches for Owner
 
         elif current_user.is_administrator:  # Choice field for admin user, can add cashier
             self.fields["role"].queryset = Role.objects.filter(role_name=CASHIER)
+
+            # show admins branch for admin user
+            self.fields["branch"].queryset = Branch.objects.filter(id=current_user.branch.id)
+            self.initial["branch"] = current_user.branch
 
         for name, field in self.fields.items():
             # format placeholder text
@@ -95,6 +103,15 @@ class EditStaffMemberForm(StaffMemberForm):
         self.fields.pop("confirm_password")
 
 
+class EditMyProfileForm(EditStaffMemberForm):
+    # Inherit EditStaffMemberForm for editing owner  details
+    # Limit changes to Username, First Name, Last Name, password reset handled separately,branch & role cannot change
+    def __init__(self, *args, current_user=None, **kwargs):
+        super().__init__(*args, current_user=current_user, **kwargs)
+        self.fields.pop("role")  # remove role and branch selection
+        self.fields.pop("branch")
+
+
 class ResetPasswordForm(StaffMemberForm):
     # Inherit BaseUser form for resetting staff member password
     def __init__(self, *args, current_user=None, **kwargs):
@@ -104,6 +121,7 @@ class ResetPasswordForm(StaffMemberForm):
         self.fields.pop("first_name")
         self.fields.pop("last_name")
         self.fields.pop("role")
+        self.fields.pop("branch")
 
 
 class BranchRegistrationForm(forms.ModelForm):
@@ -120,3 +138,24 @@ class BranchRegistrationForm(forms.ModelForm):
             field.required = True  # require user to provide input for all fields on registration
             # customize error message for required fields
             field.error_messages.update({"required": f"{name.replace('_', ' ').title()} is required"})
+
+    def clean_branch_name(self):
+        # Custom validation for branch name, must be longer than 3 characters
+        branch_name = self.cleaned_data["branch_name"]
+
+        if len(branch_name.strip()) < 3:
+            raise forms.ValidationError("Branch name must be at least 3 characters long.")
+
+        return branch_name
+
+    def clean_contact_number(self):
+        # Custom validation for branch contact number, must be 10 digits
+        contact_number = self.cleaned_data["contact_number"]
+
+        if not contact_number.isdigit():  # Ensure contact number does not contain invalid characters
+            raise forms.ValidationError("Contact number must contain digits only.")
+
+        if len(contact_number) != 10:
+            raise forms.ValidationError("Contact number must contain exactly 10 digits.")
+
+        return contact_number
