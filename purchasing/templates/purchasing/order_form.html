@@ -1,5 +1,5 @@
 {% extends "core/base.html" %}
-
+{% load static %}
 {% block title %}New purchase order | Tuckshop ERP{% endblock %}
 
 {% block content %}
@@ -24,22 +24,23 @@
     <thead>
       <tr><th>Product</th><th>Quantity</th><th>Cost price (each)</th></tr>
     </thead>
-    <tbody>
+    <tbody id="item-rows">
       {% for item_form in formset %}
-      <tr>
-        {% for field in item_form.visible_fields %}
-        <td>
-          {% if forloop.first %}{% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}{% endif %}
-          {{ field }}
-          {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-        </td>
-        {% endfor %}
-      </tr>
+        {% include "purchasing/_item_row.html" %}
       {% endfor %}
     </tbody>
   </table>
-
+  {# A blank row for the button to copy. Nothing inside <template> is shown or sent with the form. #}
+  <template id="item-row-template">
+    {% include "purchasing/_item_row.html" with item_form=formset.empty_form %}
+  </template>
+  <div class="mb-4">
+    <button type="button" id="add-item" class="btn btn-outline-secondary btn-sm">Add another item</button>
+  </div>
   <button type="submit" class="btn btn-primary">Create order</button>
   <a href="{% url 'order_list' %}" class="btn btn-link">Cancel</a>
 </form>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'purchasing/js/order_form.js' %}"></script>
 {% endblock %}

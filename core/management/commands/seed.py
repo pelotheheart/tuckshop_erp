@@ -61,7 +61,7 @@ class Command(BaseCommand):
             )
             Inventory.objects.create(branch=branch, product=product, quantity=quantity)
 
-        Supplier.objects.create(supplier_name="Sample Wholesaler", contact_name="Sipho Dube", phone="011 555 1234")
+        Supplier.objects.create(supplier_name="Sample Wholesaler", contact_name="Sipho Dube", phone="0115551234")
 
         self.stdout.write(self.style.SUCCESS("Demo data added."))
         self.stdout.write("Log in as owner, admin or cashier, using the SEED_PASSWORD from your .env file.")

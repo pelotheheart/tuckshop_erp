@@ -16,7 +16,22 @@ class SupplierForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"
+        self.fields["phone"].widget.attrs.update({
+            "inputmode": "numeric",
+            "maxlength": "10",
+            "pattern": "[0-9]{10}",
+            "title": "10 digits, numbers only, e.g. 0826492533",
+        })
 
+    def clean_phone(self):
+        phone = self.cleaned_data["phone"]
+        # Phone is optional when there's an email, so only check it if something was typed.
+        if phone:
+            if not phone.isdigit():
+                raise forms.ValidationError("Phone number must contain digits only.")
+            if len(phone) != 10:
+                raise forms.ValidationError("Phone number must contain exactly 10 digits.")
+        return phone
 
 def add_bootstrap_classes(form):
     for field in form.fields.values():
@@ -69,6 +84,6 @@ PurchaseOrderItemFormSet = forms.inlineformset_factory(
     PurchaseOrderItem,
     form=PurchaseOrderItemForm,
     formset=BaseItemFormSet,
-    extra=5,
+    extra=1,
     can_delete=False,
 )
