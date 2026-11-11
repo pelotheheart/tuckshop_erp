@@ -78,6 +78,7 @@ def add_staff(request):
     form_header = "Add Staff Member"
     button_text = "Add Member"
     pswrd_fields = True
+    show_rb = True
     if request.method == "POST":
         member_form = StaffMemberForm(request.POST, current_user=request.user)
 
@@ -87,6 +88,7 @@ def add_staff(request):
                                                                "form_header": form_header,
                                                                "button_text": button_text,
                                                                "show_password_fields": pswrd_fields,
+                                                               "show_rb": show_rb,
                                                                "now": now})
 
         with transaction.atomic():
@@ -114,6 +116,7 @@ def add_staff(request):
                                                            "page_title": "Account Registration",
                                                            "form_header": form_header,
                                                            "button_text": button_text, "show_password_fields": pswrd_fields,
+                                                           "show_rb": show_rb,
                                                            "now": now})
 
 
