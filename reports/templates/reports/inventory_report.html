@@ -69,10 +69,12 @@
         </div>
     </div>
 
+    {% if low_stock_count > 0 %}
     <div class="alert alert-warning">
         <strong>Low-stock alerts:</strong> {{ low_stock_count }} stock records
         are below their minimum stock level.
     </div>
+    {% endif %}
 
     <div class="table-responsive">
         <table class="table table-striped table-bordered">

@@ -106,19 +106,21 @@ def sales_report(request):
     sales, branches, branch_id = get_branches_and_filter(request, sales)
 
     user_model = get_user_model()
-    cashiers = user_model.objects.filter(
-        role__role_name="Cashier",
+    users = user_model.objects.filter(
         is_active=True,
     ).order_by("username")
 
     if not request.user.has_role(OWNER):
-        cashiers = cashiers.filter(branch=request.user.branch)
+        users = users.filter(branch=request.user.branch)
     elif isinstance(branch_id, int):
-        cashiers = cashiers.filter(branch_id=branch_id)
+        users = users.filter(branch_id=branch_id)
 
-    cashier_id = request.GET.get("cashier", "")
-    if cashier_id.isdigit():
-        sales = sales.filter(cashier_id=int(cashier_id))
+    user_id = request.GET.get("user", "")
+    if not user_id:
+        user_id = request.GET.get("cashier", "")
+
+    if user_id.isdigit():
+        sales = sales.filter(cashier_id=int(user_id))
 
     sales_list = list(sales.order_by("-sale_date"))
     total_revenue = 0
@@ -150,8 +152,10 @@ def sales_report(request):
             "sales": sales_list,
             "branches": branches,
             "branch_id": branch_id,
-            "cashiers": cashiers,
-            "cashier_id": cashier_id,
+            "users": users,
+            "user_id": user_id,
+            "cashiers": users,
+            "cashier_id": user_id,
             "period": period,
             "start_date": start_date,
             "end_date": end_date,
@@ -334,9 +338,9 @@ def export_sales_csv(request):
 
     sales, _, _ = get_branches_and_filter(request, sales)
 
-    cashier_id = request.GET.get("cashier", "")
-    if cashier_id.isdigit():
-        sales = sales.filter(cashier_id=int(cashier_id))
+    user_id = request.GET.get("user", "") or request.GET.get("cashier", "")
+    if user_id.isdigit():
+        sales = sales.filter(cashier_id=int(user_id))
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="sales_report.csv"'
