@@ -6,6 +6,7 @@
 {% url 'order_list' as orders_url %}
 {% url 'reports_home' as reports_url %}
 {% url 'staff' as accounts_url %}
+{% url 'branches' as branches_url %}
 <aside class="offcanvas-lg offcanvas-start flex-shrink-0 bg-white border-end d-print-none" tabindex="-1" id="sidebar" style="width: 240px;">
   <div class="offcanvas-header border-bottom">
     <span class="offcanvas-title fw-semibold">Menu</span>
@@ -39,6 +40,11 @@
     <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Accounts</div>
     <ul class="nav nav-pills flex-column">
       <li class="nav-item"><a class="nav-link {% if accounts_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ accounts_url }}">User Accounts</a></li>
+    </ul>
+
+    <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Branches</div>
+    <ul class="nav nav-pills flex-column">
+      <li class="nav-item"><a class="nav-link {% if branches_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ branches_url }}">Registered Branches</a></li>
     </ul>
 
     <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Reports</div>
