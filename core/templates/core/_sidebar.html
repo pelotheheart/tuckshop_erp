@@ -41,12 +41,14 @@
     <ul class="nav nav-pills flex-column">
       <li class="nav-item"><a class="nav-link {% if accounts_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ accounts_url }}">User Accounts</a></li>
     </ul>
-
+    {% endif %}
+    {% if user.is_owner %}
     <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Branches</div>
     <ul class="nav nav-pills flex-column">
       <li class="nav-item"><a class="nav-link {% if branches_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ branches_url }}">Registered Branches</a></li>
     </ul>
-
+    {% endif %}
+    {% if user.is_owner or user.is_administrator %}
     <div class="small text-uppercase fw-semibold text-body-secondary mt-3 mb-1 px-3">Reports</div>
     <ul class="nav nav-pills flex-column">
       <li class="nav-item"><a class="nav-link {% if reports_url in request.path %}active{% else %}link-body-emphasis{% endif %}" href="{{ reports_url }}">Reports</a></li>

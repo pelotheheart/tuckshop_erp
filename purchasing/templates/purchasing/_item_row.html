@@ -1,0 +1,9 @@
+<tr>
+  {% for field in item_form.visible_fields %}
+  <td>
+    {% if forloop.first %}{% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}{% endif %}
+    {{ field }}
+    {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+  </td>
+  {% endfor %}
+</tr>

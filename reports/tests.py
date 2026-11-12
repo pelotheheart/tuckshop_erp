@@ -184,3 +184,34 @@ class ReportsTestCase(TestCase):
         # Purchasing CSV
         r4 = self.client.get(reverse("export_purchasing_csv") + "?period=all")
         self.assertEqual(r4.status_code, 200)
+
+    def test_sales_report_user_filter(self):
+        self.client.login(username="test_owner", password="password123")
+        # All users
+        response_all = self.client.get(reverse("sales_report") + "?period=all&user=")
+        self.assertEqual(response_all.status_code, 200)
+        self.assertEqual(response_all.context["total_transactions"], 2)
+        self.assertContains(response_all, "Users")
+        self.assertContains(response_all, "All Users")
+        self.assertContains(response_all, "Back to Reports")
+
+        # Specific user (cashier1)
+        response_user1 = self.client.get(reverse("sales_report") + f"?period=all&user={self.cashier1.id}")
+        self.assertEqual(response_user1.status_code, 200)
+        self.assertEqual(response_user1.context["total_transactions"], 1)
+
+    def test_back_to_reports_buttons(self):
+        self.client.login(username="test_owner", password="password123")
+        r_sales = self.client.get(reverse("sales_report"))
+        self.assertContains(r_sales, "Back to Reports")
+
+        r_cashier = self.client.get(reverse("cashier_report"))
+        self.assertContains(r_cashier, "Back to Reports")
+
+    def test_inventory_report_no_stock_banner(self):
+        self.client.login(username="test_owner", password="password123")
+        # branch1 has inv1 with quantity=10, min_stock=5 => low_stock_count = 0
+        response = self.client.get(reverse("inventory_report") + f"?branch={self.branch1.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["low_stock_count"], 0)
+        self.assertNotContains(response, "Low-stock alerts:")
